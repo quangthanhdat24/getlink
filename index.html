@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Extractor Pro - Fixed App</title>
+    <title>Extractor Pro - Fix Alibaba/Webp</title>
     <style>
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 15px; margin: 0; }
         .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
@@ -36,15 +36,15 @@
 
 <div class="card">
     <div id="app-content">
-        <h2>Extractor Pro</h2>
+        <h2>Extractor Pro HQ</h2>
         <textarea id="urlInput" rows="6" placeholder="Dán nội dung chứa link ảnh..." oninput="handleSmartInput(this)"></textarea>
-        <button class="btn-blue" onclick="extractBulk()">TRÍCH XUẤT ẢNH</button>
+        <button class="btn-blue" onclick="extractBulk()">TRÍCH XUẤT ẢNH GỐC</button>
         
         <div id="result-box">
-            <button class="btn-pink" onclick="copyAll()">COPY TẤT CẢ LINK</button>
+            <button class="btn-pink" onclick="copyAll()">COPY TẤT CẢ LINK GỐC</button>
             <div class="hint">
-                <b>Android:</b> Nhấn TẢI VỀ để lưu vào máy.<br>
-                <b>iPhone:</b> Nhấn giữ ảnh chọn "Lưu hình ảnh".
+                <b>Đã xử lý:</b> Tự động loại bỏ mã nén của Alibaba/Taobao.<br>
+                <b>Định dạng:</b> Chuyển đổi .webp về .jpg chất lượng cao.
             </div>
             <div id="result-list"></div>
         </div>
@@ -52,14 +52,10 @@
 </div>
 
 <script>
-    // Xử lý xuống hàng thông minh - Tương thích 100% App
     function handleSmartInput(textarea) {
-        // Sử dụng requestAnimationFrame để tránh xung đột luồng xử lý của App
         window.requestAnimationFrame(() => {
             const val = textarea.value;
-            // Nếu phát hiện dán một nội dung dài (thường là link) mà chưa có dấu xuống dòng ở cuối
             if (val.length > 5 && !val.endsWith('\n')) {
-                // Kiểm tra xem có phải vừa dán link không (không chứa khoảng trắng ở cuối)
                 if (/\S$/.test(val[val.length - 1])) {
                     textarea.value = val + '\n';
                     textarea.scrollTop = textarea.scrollHeight;
@@ -68,26 +64,39 @@
         });
     }
 
-    // Trích xuất ảnh với Regex cải tiến cho App
+    // HÀM QUAN TRỌNG: Sửa lỗi link lồng nhau và định dạng webp
+    function convertToHighQual(urlStr) {
+        let cleanLink = urlStr.trim();
+
+        // 1. Xử lý link Alibaba/Taobao: cắt bỏ hậu tố nén (ví dụ: _570x10000q50.jpg_.webp)
+        // Tìm dấu "_" đứng sau các định dạng ảnh phổ biến
+        const suffixPattern = /(\.(jpg|jpeg|png|webp|heic))_.*/i;
+        if (suffixPattern.test(cleanLink)) {
+            cleanLink = cleanLink.replace(suffixPattern, '$1');
+        }
+
+        // 2. Chuyển đổi đuôi .webp ở cuối cùng sang .jpg
+        if (cleanLink.toLowerCase().endsWith('.webp')) {
+            cleanLink = cleanLink.replace(/\.webp$/i, '.jpg');
+        }
+
+        return cleanLink;
+    }
+
     function extractBulk() {
         const input = document.getElementById('urlInput').value;
         if (!input.trim()) return alert("Hãy dán nội dung trước!");
 
-        // Regex mạnh mẽ hơn để bắt link trong môi trường App
+        // Regex quét link ảnh rộng hơn để bắt được cả phần hậu tố
         const regex = /(https?:\/\/[^\s'\"<>]+\.(?:jpg|jpeg|png|gif|webp|heic)[^\s'\"<>]*)/gi;
         const matches = input.match(regex) || [];
         
         // Loại bỏ trùng và làm sạch link
-        const links = [...new Set(matches)].map(link => {
-            try {
-                // Lấy phần link chính trước các ký tự lạ
-                const url = new URL(link);
-                return url.origin + url.pathname + url.search;
-            } catch(e) { return link; }
-        });
+        const rawLinks = [...new Set(matches)];
+        const links = rawLinks.map(link => convertToHighQual(link));
 
         if (links.length === 0) {
-            alert("Không tìm thấy link ảnh hợp lệ. Hãy kiểm tra lại nội dung dán!");
+            alert("Không tìm thấy link ảnh hợp lệ!");
             return;
         }
         
@@ -95,25 +104,26 @@
         listDiv.innerHTML = "";
         
         links.forEach((link, index) => {
+            const isHeic = link.toLowerCase().includes('.heic');
+            const targetExt = isHeic ? 'HEIC' : 'JPG';
+            
             const card = document.createElement('div');
             card.className = 'result-card';
             card.innerHTML = `
-                <img src="${link}" class="preview-img" onerror="this.src='https://placehold.co/400x200?text=Link+Anh+Loi'">
+                <img src="${link}" class="preview-img" onerror="this.src='https://placehold.co/400x200?text=Link+Anh+Loi+Hoac+Khong+Ton+Tai'">
                 <div class="action-btns">
-                    <button class="copy-btn" onclick="copySingle('${link}')">COPY</button>
-                    <button class="dl-btn" onclick="downloadToGallery('${link}', 'anh_tai_${index+1}')">TẢI VỀ</button>
+                    <button class="copy-btn" onclick="copySingle('${link}')">COPY LINK</button>
+                    <button class="dl-btn" onclick="downloadToGallery('${link}', 'anh_goc_${index+1}', '${targetExt.toLowerCase()}')">TẢI ${targetExt}</button>
                 </div>
             `;
             listDiv.appendChild(card);
         });
         
         document.getElementById('result-box').style.display = 'block';
-        // Cuộn nhẹ xuống để thấy kết quả
         window.scrollTo({ top: document.getElementById('result-box').offsetTop, behavior: 'smooth' });
     }
 
-    // Hàm tải về bằng Blob (Hoạt động tốt nhất trên điện thoại)
-    async function downloadToGallery(url, filename) {
+    async function downloadToGallery(url, filename, ext) {
         try {
             const response = await fetch(url);
             if (!response.ok) throw new Error();
@@ -122,7 +132,7 @@
             
             const a = document.createElement('a');
             a.href = blobUrl;
-            a.download = filename + ".jpg";
+            a.download = filename + "." + ext;
             document.body.appendChild(a);
             a.click();
             
@@ -131,7 +141,7 @@
                 window.URL.revokeObjectURL(blobUrl);
             }, 500);
         } catch (err) {
-            // Nếu bị chặn do bảo mật (CORS), mở ảnh trực tiếp
+            // Nếu lỗi CORS, mở link trong tab mới để người dùng lưu thủ công
             window.open(url, '_blank');
         }
     }
@@ -143,19 +153,20 @@
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        alert("Đã copy link!");
+        alert("Đã copy link ảnh gốc!");
     }
 
     function copyAll() {
         const imgs = document.querySelectorAll('.preview-img');
         const links = Array.from(imgs).map(img => img.src).filter(s => !s.includes('placehold.co')).join('\n');
+        if(!links) return;
         const el = document.createElement('textarea');
         el.value = links;
         document.body.appendChild(el);
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-        alert("Đã copy tất cả!");
+        alert("Đã copy tất cả link ảnh gốc!");
     }
 </script>
 </body>
