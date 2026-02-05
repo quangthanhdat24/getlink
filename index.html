@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Extractor Pro - Fixed App</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 15px; margin: 0; }
+        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+        h2 { color: #1a73e8; text-align: center; margin-bottom: 20px; font-size: 20px; }
+        textarea { 
+            width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #ddd; border-radius: 12px; 
+            box-sizing: border-box; font-size: 16px; outline: none; display: block; resize: none;
+        }
+        button { 
+            width: 100%; padding: 14px; border: none; border-radius: 12px; cursor: pointer; 
+            font-weight: bold; font-size: 15px; margin-top: 10px; transition: 0.2s; 
+            -webkit-tap-highlight-color: transparent; 
+        }
+        .btn-blue { background-color: #1a73e8; color: white; }
+        .btn-pink { background-color: #e91e63; color: white; }
+        
+        #result-box { margin-top: 20px; display: none; }
+        .result-card { background: #f8f9fa; border: 1px solid #eee; border-radius: 15px; padding: 10px; margin-bottom: 15px; text-align: center; }
+        .preview-img { width: 100%; max-height: 250px; object-fit: contain; border-radius: 10px; background: #fff; margin-bottom: 10px; }
+        
+        .action-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .copy-btn { background: #6c757d; color: white; padding: 12px; font-size: 14px; margin: 0; }
+        .dl-btn { background: #4caf50; color: white; padding: 12px; font-size: 14px; margin: 0; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
+        
+        button:active { opacity: 0.8; transform: scale(0.95); }
+        .hint { font-size: 11px; color: #666; margin-top: 8px; line-height: 1.4; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div id="app-content">
+        <h2>Extractor Pro</h2>
+        <textarea id="urlInput" rows="6" placeholder="Dán nội dung chứa link ảnh..." oninput="handleSmartInput(this)"></textarea>
+        <button class="btn-blue" onclick="extractBulk()">TRÍCH XUẤT ẢNH</button>
+        
+        <div id="result-box">
+            <button class="btn-pink" onclick="copyAll()">COPY TẤT CẢ LINK</button>
+            <div class="hint">
+                <b>Android:</b> Nhấn TẢI VỀ để lưu vào máy.<br>
+                <b>iPhone:</b> Nhấn giữ ảnh chọn "Lưu hình ảnh".
+            </div>
+            <div id="result-list"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Xử lý xuống hàng thông minh - Tương thích 100% App
+    function handleSmartInput(textarea) {
+        // Sử dụng requestAnimationFrame để tránh xung đột luồng xử lý của App
+        window.requestAnimationFrame(() => {
+            const val = textarea.value;
+            // Nếu phát hiện dán một nội dung dài (thường là link) mà chưa có dấu xuống dòng ở cuối
+            if (val.length > 5 && !val.endsWith('\n')) {
+                // Kiểm tra xem có phải vừa dán link không (không chứa khoảng trắng ở cuối)
+                if (/\S$/.test(val[val.length - 1])) {
+                    textarea.value = val + '\n';
+                    textarea.scrollTop = textarea.scrollHeight;
+                }
+            }
+        });
+    }
+
+    // Trích xuất ảnh với Regex cải tiến cho App
+    function extractBulk() {
+        const input = document.getElementById('urlInput').value;
+        if (!input.trim()) return alert("Hãy dán nội dung trước!");
+
+        // Regex mạnh mẽ hơn để bắt link trong môi trường App
+        const regex = /(https?:\/\/[^\s'\"<>]+\.(?:jpg|jpeg|png|gif|webp|heic)[^\s'\"<>]*)/gi;
+        const matches = input.match(regex) || [];
+        
+        // Loại bỏ trùng và làm sạch link
+        const links = [...new Set(matches)].map(link => {
+            try {
+                // Lấy phần link chính trước các ký tự lạ
+                const url = new URL(link);
+                return url.origin + url.pathname + url.search;
+            } catch(e) { return link; }
+        });
+
+        if (links.length === 0) {
+            alert("Không tìm thấy link ảnh hợp lệ. Hãy kiểm tra lại nội dung dán!");
+            return;
+        }
+        
+        const listDiv = document.getElementById('result-list');
+        listDiv.innerHTML = "";
+        
+        links.forEach((link, index) => {
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            card.innerHTML = `
+                <img src="${link}" class="preview-img" onerror="this.src='https://placehold.co/400x200?text=Link+Anh+Loi'">
+                <div class="action-btns">
+                    <button class="copy-btn" onclick="copySingle('${link}')">COPY</button>
+                    <button class="dl-btn" onclick="downloadToGallery('${link}', 'anh_tai_${index+1}')">TẢI VỀ</button>
+                </div>
+            `;
+            listDiv.appendChild(card);
+        });
+        
+        document.getElementById('result-box').style.display = 'block';
+        // Cuộn nhẹ xuống để thấy kết quả
+        window.scrollTo({ top: document.getElementById('result-box').offsetTop, behavior: 'smooth' });
+    }
+
+    // Hàm tải về bằng Blob (Hoạt động tốt nhất trên điện thoại)
+    async function downloadToGallery(url, filename) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error();
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = filename + ".jpg";
+            document.body.appendChild(a);
+            a.click();
+            
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(blobUrl);
+            }, 500);
+        } catch (err) {
+            // Nếu bị chặn do bảo mật (CORS), mở ảnh trực tiếp
+            window.open(url, '_blank');
+        }
+    }
+
+    function copySingle(link) {
+        const el = document.createElement('textarea');
+        el.value = link;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        alert("Đã copy link!");
+    }
+
+    function copyAll() {
+        const imgs = document.querySelectorAll('.preview-img');
+        const links = Array.from(imgs).map(img => img.src).filter(s => !s.includes('placehold.co')).join('\n');
+        const el = document.createElement('textarea');
+        el.value = links;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        alert("Đã copy tất cả!");
+    }
+</script>
+</body>
+</html>
