@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Extractor Pro - Fix Alibaba/Webp</title>
+    <title>Extractor Pro - Fix Alibaba/Webp (Random Name)</title>
     <style>
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 15px; margin: 0; }
         .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
@@ -36,14 +36,14 @@
 
 <div class="card">
     <div id="app-content">
-        <h2>Extractor Pro v2</h2>
+        <h2>Extractor Pro v2.1</h2>
         <textarea id="urlInput" rows="6" placeholder="Dán nội dung chứa link ảnh..." oninput="handleSmartInput(this)"></textarea>
         <button class="btn-blue" onclick="extractBulk()">TRÍCH XUẤT ẢNH GỐC</button>
         
         <div id="result-box">
             <button class="btn-pink" onclick="copyAll()">COPY TẤT CẢ LINK GỐC</button>
             <div class="hint">
-                <b>Đã xử lý:</b> Tự động loại bỏ mã nén của Alibaba/Taobao.<br>
+                <b>Đã xử lý:</b> Tự động loại bỏ mã nén Alibaba & Đổi tên ngẫu nhiên.<br>
                 <b>Định dạng:</b> Chuyển đổi .webp về .jpg chất lượng cao.
             </div>
             <div id="result-list"></div>
@@ -64,34 +64,35 @@
         });
     }
 
-    // HÀM QUAN TRỌNG: Sửa lỗi link lồng nhau và định dạng webp
     function convertToHighQual(urlStr) {
         let cleanLink = urlStr.trim();
-
-        // 1. Xử lý link Alibaba/Taobao: cắt bỏ hậu tố nén (ví dụ: _570x10000q50.jpg_.webp)
-        // Tìm dấu "_" đứng sau các định dạng ảnh phổ biến
         const suffixPattern = /(\.(jpg|jpeg|png|webp|heic))_.*/i;
         if (suffixPattern.test(cleanLink)) {
             cleanLink = cleanLink.replace(suffixPattern, '$1');
         }
-
-        // 2. Chuyển đổi đuôi .webp ở cuối cùng sang .jpg
         if (cleanLink.toLowerCase().endsWith('.webp')) {
             cleanLink = cleanLink.replace(/\.webp$/i, '.jpg');
         }
-
         return cleanLink;
+    }
+
+    // Hàm tạo chuỗi ngẫu nhiên
+    function generateRandomName() {
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < 6; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return 'img_' + result + '_' + Date.now().toString().slice(-4);
     }
 
     function extractBulk() {
         const input = document.getElementById('urlInput').value;
         if (!input.trim()) return alert("Hãy dán nội dung trước!");
 
-        // Regex quét link ảnh rộng hơn để bắt được cả phần hậu tố
         const regex = /(https?:\/\/[^\s'\"<>]+\.(?:jpg|jpeg|png|gif|webp|heic)[^\s'\"<>]*)/gi;
         const matches = input.match(regex) || [];
         
-        // Loại bỏ trùng và làm sạch link
         const rawLinks = [...new Set(matches)];
         const links = rawLinks.map(link => convertToHighQual(link));
 
@@ -107,13 +108,16 @@
             const isHeic = link.toLowerCase().includes('.heic');
             const targetExt = isHeic ? 'HEIC' : 'JPG';
             
+            // Tạo tên random riêng cho mỗi ảnh
+            const randomFileName = generateRandomName();
+            
             const card = document.createElement('div');
             card.className = 'result-card';
             card.innerHTML = `
                 <img src="${link}" class="preview-img" onerror="this.src='https://placehold.co/400x200?text=Link+Anh+Loi+Hoac+Khong+Ton+Tai'">
                 <div class="action-btns">
                     <button class="copy-btn" onclick="copySingle('${link}')">COPY LINK</button>
-                    <button class="dl-btn" onclick="downloadToGallery('${link}', 'anh_goc_${index+1}', '${targetExt.toLowerCase()}')">TẢI ${targetExt}</button>
+                    <button class="dl-btn" onclick="downloadToGallery('${link}', '${randomFileName}', '${targetExt.toLowerCase()}')">TẢI ${targetExt}</button>
                 </div>
             `;
             listDiv.appendChild(card);
@@ -141,7 +145,6 @@
                 window.URL.revokeObjectURL(blobUrl);
             }, 500);
         } catch (err) {
-            // Nếu lỗi CORS, mở link trong tab mới để người dùng lưu thủ công
             window.open(url, '_blank');
         }
     }
