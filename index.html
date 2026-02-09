@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Extractor Pro - Fix Alibaba/Webp (Random Name)</title>
+    <title>Extractor Pro v2.2 - Auto Line Break</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 15px; margin: 0; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 15px; margin: 0; }
         .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
         h2 { color: #1a73e8; text-align: center; margin-bottom: 20px; font-size: 20px; }
         textarea { 
             width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #ddd; border-radius: 12px; 
-            box-sizing: border-box; font-size: 16px; outline: none; display: block; resize: none;
+            box-sizing: border-box; font-size: 14px; outline: none; display: block; resize: vertical; min-height: 150px;
+            line-height: 1.5;
         }
         button { 
             width: 100%; padding: 14px; border: none; border-radius: 12px; cursor: pointer; 
@@ -19,43 +20,46 @@
         }
         .btn-blue { background-color: #1a73e8; color: white; }
         .btn-pink { background-color: #e91e63; color: white; }
+        .btn-green { background-color: #4caf50; color: white; }
         
         #result-box { margin-top: 20px; display: none; }
         .result-card { background: #f8f9fa; border: 1px solid #eee; border-radius: 15px; padding: 10px; margin-bottom: 15px; text-align: center; }
         .preview-img { width: 100%; max-height: 250px; object-fit: contain; border-radius: 10px; background: #fff; margin-bottom: 10px; }
         
         .action-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .copy-btn { background: #6c757d; color: white; padding: 12px; font-size: 14px; margin: 0; }
-        .dl-btn { background: #4caf50; color: white; padding: 12px; font-size: 14px; margin: 0; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
+        .copy-btn { background: #6c757d; color: white; padding: 12px; font-size: 14px; }
+        .dl-btn { background: #4caf50; color: white; padding: 12px; font-size: 14px; }
         
-        button:active { opacity: 0.8; transform: scale(0.95); }
-        .hint { font-size: 11px; color: #666; margin-top: 8px; line-height: 1.4; text-align: center; }
+        button:active { opacity: 0.8; transform: scale(0.98); }
+        .hint { font-size: 12px; color: #666; margin: 10px 0; line-height: 1.4; text-align: center; }
+        .counter-box { background: #e8f0fe; padding: 8px; border-radius: 10px; margin-bottom: 10px; color: #1967d2; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div id="app-content">
-        <h2>Extractor Pro v2.1</h2>
-        <textarea id="urlInput" rows="6" placeholder="Dán nội dung chứa link ảnh..." oninput="handleSmartInput(this)"></textarea>
-        <button class="btn-blue" onclick="extractBulk()">TRÍCH XUẤT ẢNH GỐC</button>
-        
-        <div id="result-box">
-            <button class="btn-pink" onclick="copyAll()">COPY TẤT CẢ LINK GỐC</button>
-            <div class="hint">
-                <b>Đã xử lý:</b> Tự động loại bỏ mã nén Alibaba & Đổi tên ngẫu nhiên.<br>
-                <b>Định dạng:</b> Chuyển đổi .webp về .jpg chất lượng cao.
-            </div>
-            <div id="result-list"></div>
+    <h2>Extractor Pro v3.1</h2>
+    <textarea id="urlInput" placeholder="Dán nội dung chứa link ảnh..." oninput="handleSmartInput(this)"></textarea>
+    
+    <button class="btn-blue" onclick="extractBulk()">TRÍCH XUẤT ẢNH GỐC</button>
+    
+    <div id="result-box">
+        <div class="counter-box" id="counter">Tìm thấy 0 ảnh</div>
+        <div class="action-btns" style="margin-bottom: 15px;">
+            <button class="btn-pink" onclick="copyAll()">COPY TẤT CẢ</button>
+            <button class="btn-green" onclick="downloadAll()">TẢI TẤT CẢ</button>
         </div>
+        <div id="result-list"></div>
     </div>
 </div>
 
 <script>
+    // Tính năng tự động xuống dòng bạn yêu cầu
     function handleSmartInput(textarea) {
         window.requestAnimationFrame(() => {
             const val = textarea.value;
             if (val.length > 5 && !val.endsWith('\n')) {
+                // Nếu ký tự cuối không phải khoảng trắng/xuống dòng thì mới thêm
                 if (/\S$/.test(val[val.length - 1])) {
                     textarea.value = val + '\n';
                     textarea.scrollTop = textarea.scrollHeight;
@@ -66,110 +70,107 @@
 
     function convertToHighQual(urlStr) {
         let cleanLink = urlStr.trim();
-        const suffixPattern = /(\.(jpg|jpeg|png|webp|heic))_.*/i;
+        // Xử lý link Alibaba/Webp để lấy ảnh gốc chất lượng cao nhất
+        const suffixPattern = /(_\d+x\d+.*|\.webp|_v\d+.*)$/i;
+        cleanLink = cleanLink.split(/[?#]/)[0]; 
         if (suffixPattern.test(cleanLink)) {
-            cleanLink = cleanLink.replace(suffixPattern, '$1');
+            cleanLink = cleanLink.replace(suffixPattern, '');
         }
-        if (cleanLink.toLowerCase().endsWith('.webp')) {
-            cleanLink = cleanLink.replace(/\.webp$/i, '.jpg');
+        if (!/\.(jpg|jpeg|png|gif|heic)$/i.test(cleanLink)) {
+            cleanLink += '.jpg';
         }
         return cleanLink;
     }
 
-    // Hàm tạo chuỗi ngẫu nhiên
-    function generateRandomName() {
-        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-        let result = '';
-        for (let i = 0; i < 6; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return 'img_' + result + '_' + Date.now().toString().slice(-4);
-    }
-
     function extractBulk() {
         const input = document.getElementById('urlInput').value;
-        if (!input.trim()) return alert("Hãy dán nội dung trước!");
+        if (!input.trim()) return alert("Hãy dán link vào đã nhé!");
 
+        // Regex bắt link ảnh rộng hơn
         const regex = /(https?:\/\/[^\s'\"<>]+\.(?:jpg|jpeg|png|gif|webp|heic)[^\s'\"<>]*)/gi;
         const matches = input.match(regex) || [];
         
-        const rawLinks = [...new Set(matches)];
-        const links = rawLinks.map(link => convertToHighQual(link));
+        // Loại bỏ trùng lặp và làm sạch link
+        const uniqueLinks = [...new Set(matches.map(link => convertToHighQual(link)))];
 
-        if (links.length === 0) {
-            alert("Không tìm thấy link ảnh hợp lệ!");
+        if (uniqueLinks.length === 0) {
+            alert("Không tìm thấy link ảnh nào hợp lệ!");
             return;
         }
-        
+
+        document.getElementById('counter').innerText = `Tìm thấy ${uniqueLinks.length} ảnh`;
         const listDiv = document.getElementById('result-list');
         listDiv.innerHTML = "";
         
-        links.forEach((link, index) => {
-            const isHeic = link.toLowerCase().includes('.heic');
-            const targetExt = isHeic ? 'HEIC' : 'JPG';
-            
-            // Tạo tên random riêng cho mỗi ảnh
-            const randomFileName = generateRandomName();
-            
+        uniqueLinks.forEach((link) => {
+            const randomName = 'img_' + Math.random().toString(36).substring(7);
             const card = document.createElement('div');
             card.className = 'result-card';
             card.innerHTML = `
-                <img src="${link}" class="preview-img" onerror="this.src='https://placehold.co/400x200?text=Link+Anh+Loi+Hoac+Khong+Ton+Tai'">
+                <img src="${link}" class="preview-img" loading="lazy" onerror="this.src='https://placehold.co/400x200?text=Loi+Anh+Hoac+CORS'">
                 <div class="action-btns">
-                    <button class="copy-btn" onclick="copySingle('${link}')">COPY LINK</button>
-                    <button class="dl-btn" onclick="downloadToGallery('${link}', '${randomFileName}', '${targetExt.toLowerCase()}')">TẢI ${targetExt}</button>
+                    <button class="copy-btn" onclick="copyText('${link}')">COPY LINK</button>
+                    <button class="dl-btn" onclick="downloadImage('${link}', '${randomName}')">TẢI VỀ</button>
                 </div>
             `;
             listDiv.appendChild(card);
         });
         
         document.getElementById('result-box').style.display = 'block';
-        window.scrollTo({ top: document.getElementById('result-box').offsetTop, behavior: 'smooth' });
     }
 
-    async function downloadToGallery(url, filename, ext) {
+    // Sửa lỗi quan trọng: Download ảnh vượt rào cản CORS
+    async function downloadImage(url, filename) {
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, { mode: 'cors' });
             if (!response.ok) throw new Error();
             const blob = await response.blob();
             const blobUrl = window.URL.createObjectURL(blob);
-            
             const a = document.createElement('a');
             a.href = blobUrl;
-            a.download = filename + "." + ext;
+            a.download = filename + ".jpg";
             document.body.appendChild(a);
             a.click();
-            
-            setTimeout(() => {
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(blobUrl);
-            }, 500);
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(blobUrl);
         } catch (err) {
-            window.open(url, '_blank');
+            // Cách dự phòng nếu bị chặn (Mở tab mới để tải thủ công hoặc kích hoạt download trình duyệt)
+            const a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.download = filename + ".jpg";
+            a.click();
         }
     }
 
-    function copySingle(link) {
-        const el = document.createElement('textarea');
-        el.value = link;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        alert("Đã copy link ảnh gốc!");
+    function copyText(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "ĐÃ COPY!";
+            setTimeout(() => btn.innerText = originalText, 1000);
+        });
     }
 
     function copyAll() {
-        const imgs = document.querySelectorAll('.preview-img');
-        const links = Array.from(imgs).map(img => img.src).filter(s => !s.includes('placehold.co')).join('\n');
-        if(!links) return;
-        const el = document.createElement('textarea');
-        el.value = links;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        alert("Đã copy tất cả link ảnh gốc!");
+        const links = Array.from(document.querySelectorAll('.preview-img'))
+                           .map(img => img.src)
+                           .filter(s => !s.includes('placehold.co'))
+                           .join('\n');
+        navigator.clipboard.writeText(links).then(() => alert("Đã copy tất cả link ảnh gốc!"));
+    }
+
+    function downloadAll() {
+        const buttons = document.querySelectorAll('.dl-btn');
+        if (buttons.length === 0) return;
+        
+        alert("Bắt đầu tải " + buttons.length + " ảnh. Vui lòng cho phép trình duyệt tải xuống nhiều file.");
+        
+        buttons.forEach((btn, index) => {
+            setTimeout(() => {
+                btn.click();
+            }, index * 1000); // Cách nhau 1 giây để tránh trình duyệt bị treo
+        });
     }
 </script>
 </body>
