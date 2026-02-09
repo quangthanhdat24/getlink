@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Extractor Pro v2.2 - Auto Line Break</title>
+    <title>Extractor Pro v3.2 - GitHub Ready</title>
     <style>
         body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 15px; margin: 0; }
         .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
@@ -31,14 +31,13 @@
         .dl-btn { background: #4caf50; color: white; padding: 12px; font-size: 14px; }
         
         button:active { opacity: 0.8; transform: scale(0.98); }
-        .hint { font-size: 12px; color: #666; margin: 10px 0; line-height: 1.4; text-align: center; }
-        .counter-box { background: #e8f0fe; padding: 8px; border-radius: 10px; margin-bottom: 10px; color: #1967d2; font-weight: bold; }
+        .counter-box { background: #e8f0fe; padding: 10px; border-radius: 10px; margin-bottom: 10px; color: #1967d2; font-weight: bold; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>Extractor Pro v3.1</h2>
+    <h2>Extractor Pro v3.2</h2>
     <textarea id="urlInput" placeholder="Dán nội dung chứa link ảnh..." oninput="handleSmartInput(this)"></textarea>
     
     <button class="btn-blue" onclick="extractBulk()">TRÍCH XUẤT ẢNH GỐC</button>
@@ -54,43 +53,39 @@
 </div>
 
 <script>
-    // Tính năng tự động xuống dòng bạn yêu cầu
+    // Tính năng tự động xuống dòng
     function handleSmartInput(textarea) {
-        window.requestAnimationFrame(() => {
-            const val = textarea.value;
-            if (val.length > 5 && !val.endsWith('\n')) {
-                // Nếu ký tự cuối không phải khoảng trắng/xuống dòng thì mới thêm
-                if (/\S$/.test(val[val.length - 1])) {
-                    textarea.value = val + '\n';
-                    textarea.scrollTop = textarea.scrollHeight;
-                }
+        const val = textarea.value;
+        if (val.length > 5 && !val.endsWith('\n')) {
+            if (/\S$/.test(val[val.length - 1])) {
+                textarea.value = val + '\n';
+                textarea.scrollTop = textarea.scrollHeight;
             }
-        });
+        }
     }
 
     function convertToHighQual(urlStr) {
         let cleanLink = urlStr.trim();
-        // Xử lý link Alibaba/Webp để lấy ảnh gốc chất lượng cao nhất
+        // Xử lý loại bỏ hậu tố nén của Alibaba/AliExpress/Taobao
         const suffixPattern = /(_\d+x\d+.*|\.webp|_v\d+.*)$/i;
-        cleanLink = cleanLink.split(/[?#]/)[0]; 
-        if (suffixPattern.test(cleanLink)) {
-            cleanLink = cleanLink.replace(suffixPattern, '');
+        let baseLink = cleanLink.split(/[?#]/)[0]; 
+        if (suffixPattern.test(baseLink)) {
+            baseLink = baseLink.replace(suffixPattern, '');
         }
-        if (!/\.(jpg|jpeg|png|gif|heic)$/i.test(cleanLink)) {
-            cleanLink += '.jpg';
+        // Ép về đuôi .jpg nếu link gốc không có đuôi ảnh rõ ràng
+        if (!/\.(jpg|jpeg|png|gif|heic)$/i.test(baseLink)) {
+            baseLink += '.jpg';
         }
-        return cleanLink;
+        return baseLink;
     }
 
     function extractBulk() {
         const input = document.getElementById('urlInput').value;
         if (!input.trim()) return alert("Hãy dán link vào đã nhé!");
 
-        // Regex bắt link ảnh rộng hơn
         const regex = /(https?:\/\/[^\s'\"<>]+\.(?:jpg|jpeg|png|gif|webp|heic)[^\s'\"<>]*)/gi;
         const matches = input.match(regex) || [];
         
-        // Loại bỏ trùng lặp và làm sạch link
         const uniqueLinks = [...new Set(matches.map(link => convertToHighQual(link)))];
 
         if (uniqueLinks.length === 0) {
@@ -102,14 +97,14 @@
         const listDiv = document.getElementById('result-list');
         listDiv.innerHTML = "";
         
-        uniqueLinks.forEach((link) => {
-            const randomName = 'img_' + Math.random().toString(36).substring(7);
+        uniqueLinks.forEach((link, index) => {
+            const randomName = 'img_' + Date.now().toString(36) + index;
             const card = document.createElement('div');
             card.className = 'result-card';
             card.innerHTML = `
-                <img src="${link}" class="preview-img" loading="lazy" onerror="this.src='https://placehold.co/400x200?text=Loi+Anh+Hoac+CORS'">
+                <img src="${link}" class="preview-img" loading="lazy">
                 <div class="action-btns">
-                    <button class="copy-btn" onclick="copyText('${link}')">COPY LINK</button>
+                    <button class="copy-btn" onclick="copyText('${link}', this)">COPY LINK</button>
                     <button class="dl-btn" onclick="downloadImage('${link}', '${randomName}')">TẢI VỀ</button>
                 </div>
             `;
@@ -119,11 +114,9 @@
         document.getElementById('result-box').style.display = 'block';
     }
 
-    // Sửa lỗi quan trọng: Download ảnh vượt rào cản CORS
     async function downloadImage(url, filename) {
         try {
-            const response = await fetch(url, { mode: 'cors' });
-            if (!response.ok) throw new Error();
+            const response = await fetch(url);
             const blob = await response.blob();
             const blobUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -134,18 +127,13 @@
             document.body.removeChild(a);
             window.URL.revokeObjectURL(blobUrl);
         } catch (err) {
-            // Cách dự phòng nếu bị chặn (Mở tab mới để tải thủ công hoặc kích hoạt download trình duyệt)
-            const a = document.createElement('a');
-            a.href = url;
-            a.target = '_blank';
-            a.download = filename + ".jpg";
-            a.click();
+            // Dự phòng cho lỗi CORS trên GitHub Pages
+            window.open(url, '_blank');
         }
     }
 
-    function copyText(text) {
+    function copyText(text, btn) {
         navigator.clipboard.writeText(text).then(() => {
-            const btn = event.target;
             const originalText = btn.innerText;
             btn.innerText = "ĐÃ COPY!";
             setTimeout(() => btn.innerText = originalText, 1000);
@@ -153,24 +141,22 @@
     }
 
     function copyAll() {
-        const links = Array.from(document.querySelectorAll('.preview-img'))
-                           .map(img => img.src)
-                           .filter(s => !s.includes('placehold.co'))
-                           .join('\n');
-        navigator.clipboard.writeText(links).then(() => alert("Đã copy tất cả link ảnh gốc!"));
+        const imgs = document.querySelectorAll('.preview-img');
+        const links = Array.from(imgs).map(img => img.src).join('\n');
+        if (links) {
+            navigator.clipboard.writeText(links).then(() => alert("Đã copy tất cả!"));
+        }
     }
 
     function downloadAll() {
         const buttons = document.querySelectorAll('.dl-btn');
         if (buttons.length === 0) return;
         
-        alert("Bắt đầu tải " + buttons.length + " ảnh. Vui lòng cho phép trình duyệt tải xuống nhiều file.");
-        
-        buttons.forEach((btn, index) => {
-            setTimeout(() => {
-                btn.click();
-            }, index * 1000); // Cách nhau 1 giây để tránh trình duyệt bị treo
-        });
+        if(confirm(`Tải xuống ${buttons.length} ảnh? Hãy cho phép trình duyệt tải nhiều file.`)) {
+            buttons.forEach((btn, index) => {
+                setTimeout(() => btn.click(), index * 1000);
+            });
+        }
     }
 </script>
 </body>
