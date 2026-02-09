@@ -3,45 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Extractor Pro v3.2 - GitHub Ready</title>
+    <title>Extractor Pro 2.2</title>
     <style>
         body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 15px; margin: 0; }
         .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
         h2 { color: #1a73e8; text-align: center; margin-bottom: 20px; font-size: 20px; }
-        textarea { 
-            width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #ddd; border-radius: 12px; 
-            box-sizing: border-box; font-size: 14px; outline: none; display: block; resize: vertical; min-height: 150px;
-            line-height: 1.5;
-        }
-        button { 
-            width: 100%; padding: 14px; border: none; border-radius: 12px; cursor: pointer; 
-            font-weight: bold; font-size: 15px; margin-top: 10px; transition: 0.2s; 
-            -webkit-tap-highlight-color: transparent; 
-        }
+        textarea { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #ddd; border-radius: 12px; box-sizing: border-box; font-size: 14px; outline: none; display: block; resize: vertical; min-height: 150px; line-height: 1.5; }
+        button { width: 100%; padding: 14px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 15px; margin-top: 10px; transition: 0.2s; -webkit-tap-highlight-color: transparent; }
         .btn-blue { background-color: #1a73e8; color: white; }
         .btn-pink { background-color: #e91e63; color: white; }
         .btn-green { background-color: #4caf50; color: white; }
-        
         #result-box { margin-top: 20px; display: none; }
         .result-card { background: #f8f9fa; border: 1px solid #eee; border-radius: 15px; padding: 10px; margin-bottom: 15px; text-align: center; }
         .preview-img { width: 100%; max-height: 250px; object-fit: contain; border-radius: 10px; background: #fff; margin-bottom: 10px; }
-        
         .action-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .copy-btn { background: #6c757d; color: white; padding: 12px; font-size: 14px; }
         .dl-btn { background: #4caf50; color: white; padding: 12px; font-size: 14px; }
-        
-        button:active { opacity: 0.8; transform: scale(0.98); }
         .counter-box { background: #e8f0fe; padding: 10px; border-radius: 10px; margin-bottom: 10px; color: #1967d2; font-weight: bold; text-align: center; }
     </style>
 </head>
 <body>
-
 <div class="card">
-    <h2>Extractor Pro v3.2</h2>
+    <h2>Extractor Pro v3.3</h2>
     <textarea id="urlInput" placeholder="Dán nội dung chứa link ảnh..." oninput="handleSmartInput(this)"></textarea>
-    
     <button class="btn-blue" onclick="extractBulk()">TRÍCH XUẤT ẢNH GỐC</button>
-    
     <div id="result-box">
         <div class="counter-box" id="counter">Tìm thấy 0 ảnh</div>
         <div class="action-btns" style="margin-bottom: 15px;">
@@ -51,9 +36,7 @@
         <div id="result-list"></div>
     </div>
 </div>
-
 <script>
-    // Tính năng tự động xuống dòng
     function handleSmartInput(textarea) {
         const val = textarea.value;
         if (val.length > 5 && !val.endsWith('\n')) {
@@ -63,57 +46,37 @@
             }
         }
     }
-
     function convertToHighQual(urlStr) {
         let cleanLink = urlStr.trim();
-        // Xử lý loại bỏ hậu tố nén của Alibaba/AliExpress/Taobao
         const suffixPattern = /(_\d+x\d+.*|\.webp|_v\d+.*)$/i;
-        let baseLink = cleanLink.split(/[?#]/)[0]; 
-        if (suffixPattern.test(baseLink)) {
-            baseLink = baseLink.replace(suffixPattern, '');
-        }
-        // Ép về đuôi .jpg nếu link gốc không có đuôi ảnh rõ ràng
-        if (!/\.(jpg|jpeg|png|gif|heic)$/i.test(baseLink)) {
-            baseLink += '.jpg';
-        }
+        let baseLink = cleanLink.split(/[?#]/)[0];
+        if (suffixPattern.test(baseLink)) { baseLink = baseLink.replace(suffixPattern, ''); }
+        if (!/\.(jpg|jpeg|png|gif|heic)$/i.test(baseLink)) { baseLink += '.jpg'; }
         return baseLink;
     }
-
     function extractBulk() {
         const input = document.getElementById('urlInput').value;
-        if (!input.trim()) return alert("Hãy dán link vào đã nhé!");
-
+        if (!input.trim()) return alert("Hãy dán link vào!");
         const regex = /(https?:\/\/[^\s'\"<>]+\.(?:jpg|jpeg|png|gif|webp|heic)[^\s'\"<>]*)/gi;
         const matches = input.match(regex) || [];
-        
         const uniqueLinks = [...new Set(matches.map(link => convertToHighQual(link)))];
-
-        if (uniqueLinks.length === 0) {
-            alert("Không tìm thấy link ảnh nào hợp lệ!");
-            return;
-        }
-
+        if (uniqueLinks.length === 0) return alert("Không tìm thấy link ảnh!");
         document.getElementById('counter').innerText = `Tìm thấy ${uniqueLinks.length} ảnh`;
         const listDiv = document.getElementById('result-list');
         listDiv.innerHTML = "";
-        
         uniqueLinks.forEach((link, index) => {
             const randomName = 'img_' + Date.now().toString(36) + index;
             const card = document.createElement('div');
             card.className = 'result-card';
-            card.innerHTML = `
-                <img src="${link}" class="preview-img" loading="lazy">
+            card.innerHTML = `<img src="${link}" class="preview-img" loading="lazy">
                 <div class="action-btns">
                     <button class="copy-btn" onclick="copyText('${link}', this)">COPY LINK</button>
                     <button class="dl-btn" onclick="downloadImage('${link}', '${randomName}')">TẢI VỀ</button>
-                </div>
-            `;
+                </div>`;
             listDiv.appendChild(card);
         });
-        
         document.getElementById('result-box').style.display = 'block';
     }
-
     async function downloadImage(url, filename) {
         try {
             const response = await fetch(url);
@@ -126,36 +89,23 @@
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(blobUrl);
-        } catch (err) {
-            // Dự phòng cho lỗi CORS trên GitHub Pages
-            window.open(url, '_blank');
-        }
+        } catch (err) { window.open(url, '_blank'); }
     }
-
     function copyText(text, btn) {
         navigator.clipboard.writeText(text).then(() => {
-            const originalText = btn.innerText;
-            btn.innerText = "ĐÃ COPY!";
-            setTimeout(() => btn.innerText = originalText, 1000);
+            const old = btn.innerText; btn.innerText = "ĐÃ COPY!";
+            setTimeout(() => btn.innerText = old, 1000);
         });
     }
-
     function copyAll() {
-        const imgs = document.querySelectorAll('.preview-img');
-        const links = Array.from(imgs).map(img => img.src).join('\n');
-        if (links) {
-            navigator.clipboard.writeText(links).then(() => alert("Đã copy tất cả!"));
-        }
+        const links = Array.from(document.querySelectorAll('.preview-img')).map(img => img.src).join('\n');
+        if (links) navigator.clipboard.writeText(links).then(() => alert("Đã copy tất cả!"));
     }
-
     function downloadAll() {
         const buttons = document.querySelectorAll('.dl-btn');
         if (buttons.length === 0) return;
-        
-        if(confirm(`Tải xuống ${buttons.length} ảnh? Hãy cho phép trình duyệt tải nhiều file.`)) {
-            buttons.forEach((btn, index) => {
-                setTimeout(() => btn.click(), index * 1000);
-            });
+        if(confirm(`Tải ${buttons.length} ảnh?`)) {
+            buttons.forEach((btn, index) => { setTimeout(() => btn.click(), index * 1000); });
         }
     }
 </script>
