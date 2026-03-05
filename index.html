@@ -3,219 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Extractor Pro v2.3 - Super Fix</title>
+    <title>Extractor Pro v3.1 - No Grayscale Fix</title>
     <style>
-        body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 15px; margin: 0; }
-        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
-        h2 { color: #1a73e8; text-align: center; margin-bottom: 20px; font-size: 20px; }
-        textarea { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #ddd; border-radius: 12px; box-sizing: border-box; font-size: 14px; outline: none; display: block; resize: vertical; min-height: 150px; line-height: 1.5; }
-        button { width: 100%; padding: 14px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 15px; margin-top: 10px; transition: 0.2s; -webkit-tap-highlight-color: transparent; }
-        .btn-blue { background-color: #1a73e8; color: white; }
-        .btn-pink { background-color: #e91e63; color: white; }
-        .btn-green { background-color: #4caf50; color: white; }
+        :root { --primary: #1a73e8; --success: #4caf50; --bg: #f8f9fa; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 10px; margin: 0; }
+        .card { background: white; padding: 15px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); width: 100%; max-width: 600px; }
+        h2 { color: var(--primary); text-align: center; margin: 0 0 15px 0; font-size: 18px; }
         
-        #update-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 380px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        textarea { 
+            width: 100%; padding: 10px; border: 2px solid #eee; border-radius: 10px; 
+            box-sizing: border-box; font-size: 13px; outline: none; resize: vertical; 
+            min-height: 80px; margin-bottom: 10px;
+        }
         
-        #result-box { margin-top: 20px; display: none; }
-        .result-card { background: #f8f9fa; border: 1px solid #eee; border-radius: 15px; padding: 10px; margin-bottom: 15px; text-align: center; }
-        .preview-img { width: 100%; max-height: 250px; object-fit: contain; border-radius: 10px; background: #fff; margin-bottom: 10px; }
-        .action-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .copy-btn { background: #6c757d; color: white; padding: 12px; font-size: 14px; border-radius: 10px; }
-        .dl-btn { background: #4caf50; color: white; padding: 12px; font-size: 14px; border-radius: 10px; }
-        .counter-box { background: #e8f0fe; padding: 10px; border-radius: 10px; margin-bottom: 10px; color: #1967d2; font-weight: bold; text-align: center; }
+        button { border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; -webkit-tap-highlight-color: transparent; }
+        .btn-main { width: 100%; padding: 12px; background: var(--primary); color: white; font-size: 14px; }
+        .btn-copy-all { width: 100%; padding: 10px; background: #fce4ec; color: #d81b60; margin-top: 10px; font-size: 13px; }
         
-        /* Progress Bar cho việc tải tất cả */
-        #progress-container { display: none; margin-bottom: 10px; background: #eee; border-radius: 10px; height: 10px; overflow: hidden; }
-        #progress-bar { width: 0%; height: 100%; background: #4caf50; transition: 0.3s; }
+        #result-box { margin-top: 15px; display: none; }
+        .counter-box { text-align: center; font-size: 12px; color: #666; margin-bottom: 10px; }
+
+        #result-list { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 10px; 
+        }
+        @media (min-width: 450px) { #result-list { grid-template-columns: repeat(3, 1fr); } }
+
+        .result-card { 
+            background: #fff; border: 1px solid #eee; border-radius: 12px; 
+            padding: 6px; position: relative; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        
+        .img-container { 
+            position: relative; 
+            width: 100%; 
+            aspect-ratio: 1/1; 
+            margin-bottom: 6px; 
+            overflow: hidden; 
+            border-radius: 8px;
+        }
+        
+        .preview-img { 
+            width: 100%; height: 100%; object-fit: cover; 
+            background: #f0f0f0; display: block;
+            /* Đã loại bỏ hiệu ứng filter grayscale ở đây */
+        }
+
+        .checked-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.4); /* Làm sáng nhẹ ảnh khi hiện tích */
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; 
+            transition: opacity 0.8s; 
+            pointer-events: none;
+        }
+        .checked-overlay span {
+            background: var(--success); color: white; width: 35px; height: 35px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 24px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .checked-overlay.show { opacity: 1; }
+
+        /* Trạng thái nút khi đã tải */
+        .result-card.downloaded .dl-btn { background: #e0e0e0; color: #999; }
+        /* Không còn dòng .preview-img { filter: grayscale(1); } để giữ màu gốc */
+
+        .action-btns { width: 100%; display: flex; flex-direction: column; gap: 4px; }
+        .action-btns button { padding: 6px 0; font-size: 11px; }
+        .copy-btn { background: #f1f3f4; color: #5f6368; }
+        .dl-btn { background: var(--success); color: white; }
+
+        button:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
 
-<div id="update-modal">
-    <div class="modal-content">
-        <h3>🚀 Phiên bản 2.3 - Fix Toàn Diện</h3>
-        <ul style="text-align: left; font-size: 13px;">
-            <li>✅ <b>Tải hàng loạt:</b> Cơ chế tải thông minh không lo bị trình duyệt chặn.</li>
-            <li>✅ <b>Xử lý link Alibaba:</b> Cắt đuôi .webp để lấy ảnh .jpg gốc.</li>
-            <li>✅ <b>Chống lag:</b> Xử lý mượt khi dán 50-100 link cùng lúc.</li>
-        </ul>
-        <button class="btn-blue" onclick="closeUpdateModal()">BẮT ĐẦU NGAY</button>
-    </div>
-</div>
-
 <div class="card">
-    <h2>Extractor Pro v2.3</h2>
-    <textarea id="urlInput" placeholder="Dán nội dung chứa nhiều link ảnh vào đây..." oninput="handleSmartInput(this)"></textarea>
-    <button class="btn-blue" onclick="extractBulk()">TRÍCH XUẤT ẢNH GỐC</button>
+    <h2>Extractor Pro v2.4</h2>
+    <textarea id="urlInput" placeholder="Dán link hoặc nội dung chứa link ảnh vào đây..." oninput="autoNewLine(this)"></textarea>
+    <button class="btn-main" onclick="extractBulk()">TRÍCH XUẤT NGAY</button>
     
     <div id="result-box">
-        <div class="counter-box" id="counter">Tìm thấy 0 ảnh</div>
-        
-        <div id="progress-container"><div id="progress-bar"></div></div>
-
-        <div class="action-btns" style="margin-bottom: 15px;">
-            <button class="btn-pink" onclick="copyAll()">COPY TẤT CẢ</button>
-            <button class="btn-green" id="btnDownloadAll" onclick="downloadAll()">TẢI TẤT CẢ</button>
-        </div>
+        <div class="counter-box" id="counter">Sẵn sàng</div>
         <div id="result-list"></div>
+        <button class="btn-copy-all" onclick="copyAll()">COPY TẤT CẢ LINK</button>
     </div>
 </div>
 
 <script>
-    window.onload = function() {
-        if (!localStorage.getItem('v2.3_seen')) {
-            document.getElementById('update-modal').style.display = 'flex';
-        }
-    };
-
-    function closeUpdateModal() {
-        localStorage.setItem('v2.3_seen', 'true');
-        document.getElementById('update-modal').style.display = 'none';
-    }
-
-    function handleSmartInput(textarea) {
-        // Tối ưu hóa việc dán nội dung lớn
+    function autoNewLine(textarea) {
         const val = textarea.value;
         if (val.length > 5 && !val.endsWith('\n')) {
-            if (/\.(jpg|png|webp|heic|jpeg)\S*$/i.test(val)) {
+            if (/\.(jpg|jpeg|png|webp|heic|gif)/i.test(val.split('\n').pop())) {
                 textarea.value = val + '\n';
                 textarea.scrollTop = textarea.scrollHeight;
             }
         }
     }
 
+    function generateRandomName() {
+        return `IMG_${Math.random().toString(36).substring(2, 6).toUpperCase()}_${Date.now().toString().slice(-4)}`;
+    }
+
     function convertToHighQual(urlStr) {
         let link = urlStr.trim();
-        // 1. Loại bỏ các phần crop/resize sau dấu gạch dưới (đặc trưng của Alibaba/Taobao)
-        // Ví dụ: .jpg_500x500.jpg_.webp -> .jpg
         const cleanPattern = /(\.(jpg|jpeg|png|heic|gif))_.*/i;
-        if (cleanPattern.test(link)) {
-            link = link.replace(cleanPattern, '$1');
-        }
-        // 2. Ép .webp thành .jpg nếu nó nằm ở cuối
-        if (link.toLowerCase().endsWith('.webp')) {
-            link = link.replace(/\.webp$/i, '.jpg');
-        }
+        if (cleanPattern.test(link)) link = link.replace(cleanPattern, '$1');
+        if (link.toLowerCase().endsWith('.webp')) link = link.replace(/\.webp$/i, '.jpg');
         return link;
     }
 
     function extractBulk() {
         const input = document.getElementById('urlInput').value;
-        if (!input.trim()) return alert("Vui lòng dán link!");
-        
-        // Regex bắt link rộng hơn để tránh bỏ sót các link có ký tự lạ của sàn TMĐT
+        if (!input.trim()) return;
+
         const regex = /(https?:\/\/[^\s'\"<>]+\.(?:jpg|jpeg|png|gif|webp|heic)[^\s'\"<>]*)/gi;
         const matches = input.match(regex) || [];
-        
-        // Xử lý link gốc và lọc trùng
-        const uniqueLinks = [...new Set(matches.map(link => convertToHighQual(link)))];
-        
+        const uniqueLinks = [...new Set(matches.map(convertToHighQual))];
+
         if (uniqueLinks.length === 0) return alert("Không tìm thấy link ảnh!");
 
-        document.getElementById('counter').innerText = `Tìm thấy ${uniqueLinks.length} ảnh`;
         const listDiv = document.getElementById('result-list');
-        listDiv.innerHTML = "";
-        
-        uniqueLinks.forEach((link, index) => {
+        const fragment = document.createDocumentFragment();
+        listDiv.innerHTML = ""; 
+
+        uniqueLinks.forEach((link) => {
             const card = document.createElement('div');
             card.className = 'result-card';
             card.innerHTML = `
-                <img src="${link}" class="preview-img" loading="lazy" onerror="this.src='https://placehold.co/400x200?text=Loi+Link+Hoac+CORS'">
+                <div class="img-container">
+                    <img src="${link}" class="preview-img" loading="lazy">
+                    <div class="checked-overlay"><span>✓</span></div>
+                </div>
                 <div class="action-btns">
+                    <button class="dl-btn" onclick="handleDownload(this, '${link}')">TẢI VỀ</button>
                     <button class="copy-btn" onclick="copyText('${link}', this)">COPY</button>
-                    <button class="dl-btn single-dl" data-url="${link}">TẢI VỀ</button>
                 </div>`;
-            
-            // Gán sự kiện click tải riêng lẻ
-            card.querySelector('.single-dl').onclick = function() {
-                downloadImage(this.getAttribute('data-url'), `image_${index + 1}`);
-            };
-            
-            listDiv.appendChild(card);
+            fragment.appendChild(card);
         });
+
+        listDiv.appendChild(fragment);
+        document.getElementById('counter').innerText = `Tìm thấy ${uniqueLinks.length} ảnh`;
         document.getElementById('result-box').style.display = 'block';
     }
 
-    // Hàm tải ảnh đơn lẻ (Dùng Blob để ép lưu file)
-    async function downloadImage(url, filename) {
+    async function handleDownload(btn, url) {
+        const card = btn.closest('.result-card');
+        const overlay = card.querySelector('.checked-overlay');
+        const fileName = generateRandomName();
+        
+        card.classList.add('downloaded');
+        btn.innerText = "ĐÃ TẢI";
+
+        overlay.classList.add('show');
+        setTimeout(() => {
+            overlay.classList.remove('show');
+        }, 1200);
+
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, { mode: 'cors' });
             const blob = await response.blob();
-            const blobUrl = window.URL.createObjectURL(blob);
+            const blobUrl = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = blobUrl;
-            a.download = filename + ".jpg";
-            document.body.appendChild(a);
+            a.download = `${fileName}.jpg`;
             a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(blobUrl);
-            return true;
-        } catch (err) {
-            // Nếu lỗi CORS (thường gặp), mở tab mới là phương án cuối cùng
+            URL.revokeObjectURL(blobUrl);
+        } catch (e) {
             window.open(url, '_blank');
-            return false;
         }
-    }
-
-    // HÀM TẢI TẤT CẢ (Đã sửa lỗi không chạy)
-    async function downloadAll() {
-        const buttons = document.querySelectorAll('.single-dl');
-        if (buttons.length === 0) return;
-        
-        const btnAll = document.getElementById('btnDownloadAll');
-        const progressCont = document.getElementById('progress-container');
-        const progressBar = document.getElementById('progress-bar');
-        
-        if (!confirm(`Tải xuống ${buttons.length} ảnh? (Vui lòng cho phép nếu trình duyệt hỏi)`)) return;
-
-        btnAll.disabled = true;
-        btnAll.innerText = "ĐANG TẢI...";
-        progressCont.style.display = "block";
-
-        for (let i = 0; i < buttons.length; i++) {
-            const url = buttons[i].getAttribute('data-url');
-            await downloadImage(url, `batch_img_${i + 1}`);
-            
-            // Cập nhật thanh tiến trình
-            const percent = ((i + 1) / buttons.length) * 100;
-            progressBar.style.width = percent + "%";
-            
-            // Chờ một chút giữa các lần tải để trình duyệt không chặn
-            await new Promise(resolve => setTimeout(resolve, 600)); 
-        }
-
-        btnAll.disabled = false;
-        btnAll.innerText = "TẢI TẤT CẢ XONG!";
-        setTimeout(() => {
-            btnAll.innerText = "TẢI TẤT CẢ";
-            progressCont.style.display = "none";
-            progressBar.style.width = "0%";
-        }, 2000);
     }
 
     function copyText(text, btn) {
-        const el = document.createElement('textarea');
-        el.value = text;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        const old = btn.innerText; btn.innerText = "XONG!";
-        setTimeout(() => btn.innerText = old, 1000);
+        navigator.clipboard.writeText(text);
+        const oldText = btn.innerText;
+        btn.innerText = "OK!";
+        setTimeout(() => btn.innerText = oldText, 800);
     }
 
     function copyAll() {
-        const imgs = document.querySelectorAll('.preview-img');
-        const links = Array.from(imgs).map(img => img.src).filter(s => !s.includes('placehold.co')).join('\n');
+        const links = Array.from(document.querySelectorAll('.preview-img')).map(img => img.src).join('\n');
         if (links) {
-            const el = document.createElement('textarea');
-            el.value = links;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-            alert("Đã copy tất cả link!");
+            navigator.clipboard.writeText(links).then(() => alert("Đã copy tất cả!"));
         }
     }
 </script>
